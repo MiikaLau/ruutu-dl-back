@@ -20,10 +20,6 @@ proxy.on('error', function (err, _req, res) {
 
 app.use(express.json())
 app.use(cors());
-// app.use(async (_req, _res, next) => {
-//     await new Promise((resolve) => { setTimeout(resolve, 1000) });
-//     next()
-// })
 
 app.get('/search_items', (_req, res) => {
   const key = `searchItems`;
@@ -104,18 +100,15 @@ app.get('/get_episode/:title_id/:episode_id', async (_req, res) => {
 
 
 app.get('/cachedata', (_req, res) => {
-  const stats = {};
+  const stats = {
+    episodeCache: cache.episodeCache.getStats(),
+    searchItemsCache: cache.searchCache.getStats(),
+  };
   res.send(stats);
 });
 
 app.all('/*', (req, res) => {
-  if (req.path.includes('eventreport') ||
-    req.path.includes('archive')) {
-    proxy.web(req, res, { target: frontend, ignorePath: true });
-  }
-  else {
-    proxy.web(req, res, { target: frontend });
-  }
+  proxy.web(req, res, { target: frontend });
 })
 
 app.listen(port, () => {

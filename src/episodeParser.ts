@@ -5,10 +5,12 @@ import { PageResponse, PageResponseComponent } from "./interfaces/PageResponse";
 export const parseEpisodes = async (pageResponse: PageResponse): Promise<Episodes> => {
   let episodes = {};
   if (pageResponse.components && pageResponse.components.find(comp => comp.type === 'TabContainer')) {
+    // Seasons are in tabs
     const tabContainer = pageResponse.components.find(comp => comp.type === 'TabContainer');
     episodes = await fetchEpisodeInfos(tabContainer.content.items);
   }
   else if (pageResponse.components && pageResponse.components.find(comp => comp.type === 'Carousel')) {
+    // Seasons are in carousels
     const carousels = pageResponse.components
       .filter(comp => comp.type === 'Carousel')
       .filter(comp => comp.content.default_item_style === 'CardHoverbox')
@@ -17,6 +19,7 @@ export const parseEpisodes = async (pageResponse: PageResponse): Promise<Episode
       episodes = await fetchEpisodeInfos(carousels);
     }
     else {
+      // Single episode / movie
       const card = pageResponse.components.find(comp => comp.type === 'Grid');
       episodes = await fetchEpisodeInfos([card])
     }
