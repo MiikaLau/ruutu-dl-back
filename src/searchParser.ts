@@ -20,6 +20,6 @@ export const parseSearch = (searchXml: string) => {
   const filteredItems = searchItems
     .sort((a, b) => a.title.localeCompare(b.title))
     .filter(item => !item.label)
-    .map((item) => { return { ...item, title_original: decode(item.title_original) } as SearchItem });
+    .map((item) => { return { ...item, title_original: decode(item.title_original), title: decode(item.title) } as SearchItem });
   return filteredItems;
 }

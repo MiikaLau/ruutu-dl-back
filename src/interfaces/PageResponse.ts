@@ -17,7 +17,17 @@ export interface PageResponseComponent {
 
 }
 
+export interface PageResponseMetadata {
+  title: string;
+  meta: Array<{ name?: string; property?: string; content: string; }>;
+}
+
 export interface PageResponse {
 
   components: Array<PageResponseComponent>;
+  metadata: PageResponseMetadata;
+  parent_page?: {
+    type: string;
+    id: number;
+  }
 }

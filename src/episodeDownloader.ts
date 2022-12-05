@@ -10,7 +10,7 @@ const parser = new XMLParser({
   processEntities: false,
 });
 
-export const downloadEpisode = async (episodeId: string, title: string, res: any) => {
+export const downloadEpisode = async (episodeId: string, title: string, stream: string | null, res: any) => {
   const xml = await axios.get(`http://gatling.nelonenmedia.fi/media-xml-cache?id=${episodeId}`);
   const parsed = parser.parse(xml.data);
   const playListUrl = parsed.Playerdata[0].Clip[0].AppleMediaFiles[0].AppleMediaFile[0];
@@ -20,7 +20,14 @@ export const downloadEpisode = async (episodeId: string, title: string, res: any
   res.setHeader('Content-disposition', `attachment; filename=${title}.mp4`);
   res.setHeader('Content-type', 'video/mp4');
   return new Promise<void>((resolve, reject) => {
-    const ffMpegProcess = spawn(ffmpegInstaller.path, ['-i', videoUrl, '-c', 'copy', '-f', 'mpegts', 'pipe:1'])
+    let args = [];
+    if (stream) {
+      args = ['-i', videoUrl, '-movflags', 'isml+frag_keyframe', '-f', 'ismv', 'pipe:1'];
+    }
+    else {
+      args = ['-i', videoUrl, '-c', 'copy', '-f', 'mpegts', 'pipe:1'];
+    }
+    const ffMpegProcess = spawn(ffmpegInstaller.path, args)
     if (ffMpegProcess.stderr) {
       ffMpegProcess.stderr.setEncoding('utf8');
     }

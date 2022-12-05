@@ -2,7 +2,7 @@ import axios from "axios";
 import { Episode, Episodes } from "./interfaces/Episodes";
 import { PageResponse, PageResponseComponent } from "./interfaces/PageResponse";
 
-export const parseEpisodes = async (pageResponse: PageResponse): Promise<Episodes> => {
+export const parseEpisodes = async (pageResponse: PageResponse, isVideo: boolean): Promise<Episodes> => {
   let episodes = {};
   if (pageResponse.components && pageResponse.components.find(comp => comp.type === 'TabContainer')) {
     // Seasons are in tabs
@@ -18,10 +18,25 @@ export const parseEpisodes = async (pageResponse: PageResponse): Promise<Episode
     if (carousels.length > 0) {
       episodes = await fetchEpisodeInfos(carousels);
     }
-    else {
+    else if (pageResponse.components && pageResponse.components.find(comp => comp.type === 'Grid')) {
       // Single episode / movie
       const card = pageResponse.components.find(comp => comp.type === 'Grid');
       episodes = await fetchEpisodeInfos([card])
+    }
+    else if (isVideo) {
+      const title = pageResponse.metadata.title;
+      const description = pageResponse.metadata.meta.find(el => el.name && el.name === 'description').content;
+      const ep = {
+        id: pageResponse.parent_page ? pageResponse.parent_page.id : 0,
+        title,
+        description,
+      };
+      return {
+        [title]: [ep]
+      }
+    }
+    else {
+      console.log("WEIRD PAGE:", pageResponse.components);
     }
   }
   return episodes;

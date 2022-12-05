@@ -40,19 +40,25 @@ app.get('/search_items', (_req, res) => {
   }
 });
 
-const getEpisodes = async (key: string, titleId: string): Promise<[Episodes, string | null]> => {
-  return axios.get(`https://prod-component-api.nm-services.nelonenmedia.fi/api/v1/series/${titleId}?app=ruutu&client=web&userroles=Logged_In_User`)
-    .then(async (axiosRes) => {
-      try {
-        const episodeItems = await parseEpisodes(axiosRes.data);
-        cache.episodeCache.set(key, episodeItems);
-        return [episodeItems, null];
-      }
-      catch (err) {
-        console.log(err);
-        return [{}, err];
-      }
-    });
+const getEpisodes = async (key: string, titleId: string, isVideo: boolean): Promise<[Episodes, string | null]> => {
+  try {
+    return axios.get(`https://prod-component-api.nm-services.nelonenmedia.fi/api/v1/${isVideo ? 'video' : 'series'}/${titleId}?app=ruutu&client=web&userroles=Logged_In_User`)
+      .then(async (axiosRes) => {
+        try {
+          const episodeItems = await parseEpisodes(axiosRes.data, isVideo);
+          cache.episodeCache.set(key, episodeItems);
+          return [episodeItems, null];
+        }
+        catch (err) {
+          console.log(err);
+          return [{}, err];
+        }
+      });
+  }
+  catch (err) {
+    console.log(err);
+    return [{}, err];
+  }
 }
 
 app.get('/episodes/:title_id', async (_req, res) => {
@@ -60,10 +66,14 @@ app.get('/episodes/:title_id', async (_req, res) => {
     res.send({});
     return;
   }
+  let isVideo: string | null = _req.query.video as unknown as string | null;
+  if (typeof isVideo !== 'string') {
+    isVideo = null;
+  }
   const key = `episodes_${_req.params.title_id}`;
   if (cache.episodeCache.has(key)) res.send(cache.episodeCache.get(key));
   else {
-    const [episodes, err] = await getEpisodes(key, _req.params.title_id);
+    const [episodes, err] = await getEpisodes(key, _req.params.title_id, isVideo === 'true');
     if (err) {
       res.status(500).send();
     }
@@ -72,6 +82,10 @@ app.get('/episodes/:title_id', async (_req, res) => {
 });
 
 app.get('/get_episode/:title_id/:episode_id', async (_req, res) => {
+  let isVideo: string | null = _req.query.video as unknown as string | null;
+  if (typeof isVideo !== 'string') {
+    isVideo = null;
+  }
   try {
     const epsKey = `episodes_${_req.params.title_id}`;
     let title = _req.params.episode_id;
@@ -81,7 +95,7 @@ app.get('/get_episode/:title_id/:episode_id', async (_req, res) => {
     }
     else {
       let err: string | null = null;
-      [episodes, err] = await getEpisodes(epsKey, _req.params.title_id);
+      [episodes, err] = await getEpisodes(epsKey, _req.params.title_id, isVideo === 'true');
       if (err) {
         res.status(500).send();
       }
@@ -90,7 +104,11 @@ app.get('/get_episode/:title_id/:episode_id', async (_req, res) => {
       const foundEp = episodes[series].find(ep => ep.id === Number(title))
       if (foundEp) title = foundEp.title;
     });
-    await downloadEpisode(_req.params.episode_id, title, res);
+    let stream: string | null = _req.query.stream as unknown as string | null;
+    if (typeof stream !== 'string') {
+      stream = null;
+    }
+    await downloadEpisode(_req.params.episode_id, title, stream, res);
   }
   catch (err) {
     console.log(err);
