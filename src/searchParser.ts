@@ -7,6 +7,7 @@ const parser = new XMLParser({
   isArray: () => true,
   ignoreDeclaration: true,
   processEntities: false,
+  stopNodes: ['*.head']
 });
 
 export const parseSearch = (searchXml: string) => {
